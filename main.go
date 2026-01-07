@@ -68,7 +68,7 @@ func main() {
 
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Error: "+err.Error())
-			return
+			os.Exit(1)
 		}
 
 		fmt.Println(string(bytes))

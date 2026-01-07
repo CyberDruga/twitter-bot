@@ -85,23 +85,21 @@ func main() {
 
 		slices.Reverse(message.Tweets)
 
-		for _, tweet := range message.Tweets {
-			var message string
+		var msg string
 
-			if config.Message != "" {
-				message = config.Message + " "
-			}
-
-			message = message + strings.Replace(tweet.Url, "x.com", "fixupx.com", 1)
-
-			err := SendWebhookMessage(config.WebhookUrl, message)
-
-			if err != nil {
-				fmt.Fprintln(os.Stderr, "Error: "+err.Error())
-			}
-
+		if config.Message != "" {
+			msg = config.Message + "\n"
 		}
 
+		for _, tweet := range message.Tweets {
+			msg = msg + strings.Replace(tweet.Url, "x.com", "fixupx.com", 1) + "\n"
+		}
+
+		err = SendWebhookMessage(config.WebhookUrl, msg)
+
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Error: "+err.Error())
+		}
 	}
 }
 

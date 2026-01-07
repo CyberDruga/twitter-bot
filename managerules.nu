@@ -16,3 +16,8 @@ def "main delete_rule" [
 		| to json
 		| http delete https://api.twitterapi.io/oapi/tweet_filter/delete_rule --headers { X-API-Key: $"(cat ./.api-key-twitchapi)" }
 }
+
+def "main info" [] {
+	http get "https://api.twitterapi.io/oapi/my/info" --headers { X-API-Key: $"(cat ./.api-key-twitchapi)"}
+}
+

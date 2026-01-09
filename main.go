@@ -81,6 +81,10 @@ func main() {
 			continue
 		}
 
+		if len(message.Tweets) == 0 {
+			continue
+		}
+
 		fmt.Printf("%v\n", message)
 
 		slices.Reverse(message.Tweets)

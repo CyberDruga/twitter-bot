@@ -9,6 +9,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/gorilla/websocket"
@@ -89,21 +90,26 @@ func main() {
 
 		slices.Reverse(message.Tweets)
 
-		var msg string
-
-		if config.Message != "" {
-			msg = config.Message + "\n"
-		}
-
-		for _, tweet := range message.Tweets {
-			msg = msg + strings.Replace(tweet.Url, "x.com", "fixupx.com", 1) + "\n"
-		}
-
-		err = SendWebhookMessage(config.WebhookUrl, msg)
+		err = SendWebhookMessage(config.WebhookUrl, config.Message)
 
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Error: "+err.Error())
 		}
+
+		for _, tweet := range message.Tweets {
+
+			msg := strings.Replace(tweet.Url, "x.com", "fixupx.com", 1) + "\n"
+
+			err = SendWebhookMessage(config.WebhookUrl, msg)
+
+			time.Sleep(1 * time.Second)
+
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "Error: "+err.Error())
+			}
+
+		}
+
 	}
 }
 

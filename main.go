@@ -92,7 +92,7 @@ func main() {
 
 		slices.Reverse(message.Tweets)
 
-		var first bool
+		first := true
 
 		for _, tweet := range message.Tweets {
 

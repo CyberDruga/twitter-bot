@@ -36,6 +36,8 @@ type Tweet struct {
 	Url string `json:"url"`
 }
 
+var sentTweets []Tweet
+
 func main() {
 
 	var config Config
@@ -90,17 +92,29 @@ func main() {
 
 		slices.Reverse(message.Tweets)
 
-		err = SendWebhookMessage(config.WebhookUrl, config.Message)
-
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error: "+err.Error())
-		}
+		var first bool
 
 		for _, tweet := range message.Tweets {
 
-			msg := strings.Replace(tweet.Url, "x.com", "fixupx.com", 1) + "\n"
+			if slices.Contains(sentTweets, tweet) {
+				continue
+			}
+
+			if first {
+				err = SendWebhookMessage(config.WebhookUrl, config.Message)
+
+				if err != nil {
+					fmt.Fprintln(os.Stderr, "Error: "+err.Error())
+				}
+
+				first = false
+			}
+
+			msg := strings.Replace(tweet.Url, "x.com", "fixupx.com", 1)
 
 			err = SendWebhookMessage(config.WebhookUrl, msg)
+
+			sentTweets = append(sentTweets, tweet)
 
 			time.Sleep(1 * time.Second)
 

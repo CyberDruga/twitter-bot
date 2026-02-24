@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,7 +17,8 @@ import (
 )
 
 const (
-	URL = "wss://ws.twitterapi.io/twitter/tweet/websocket"
+	URL        = "wss://ws.twitterapi.io/twitter/tweet/websocket"
+	CACHE_FILE = ".cache"
 )
 
 type Config struct {
@@ -36,8 +38,6 @@ type Tweet struct {
 	Url string `json:"url"`
 }
 
-var sentTweets []Tweet
-
 func main() {
 
 	var config Config
@@ -55,6 +55,10 @@ func main() {
 	if config.WebhookUrl == "" {
 		panic("No webhook url informed")
 	}
+
+	cache := GetCache(CACHE_FILE)
+
+	defer WriteCache(CACHE_FILE, cache)
 
 	headers := http.Header{}
 
@@ -96,7 +100,7 @@ func main() {
 
 		for _, tweet := range message.Tweets {
 
-			if slices.Contains(sentTweets, tweet) {
+			if slices.Contains(cache, tweet) {
 				continue
 			}
 
@@ -114,7 +118,7 @@ func main() {
 
 			err = SendWebhookMessage(config.WebhookUrl, msg)
 
-			sentTweets = append(sentTweets, tweet)
+			cache = append(cache, tweet)
 
 			time.Sleep(1 * time.Second)
 
@@ -168,7 +172,7 @@ func SendWebhookMessage(url string, message string) (err error) {
 	}
 
 	if response.Message != "" {
-		return fmt.Errorf(response.Message)
+		return errors.New(response.Message)
 	}
 
 	return

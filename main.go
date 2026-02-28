@@ -58,8 +58,6 @@ func main() {
 
 	cache := GetCache(CACHE_FILE)
 
-	defer WriteCache(CACHE_FILE, cache)
-
 	headers := http.Header{}
 
 	headers.Add("x-api-key", config.ApiToken)
@@ -75,6 +73,7 @@ func main() {
 
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Error: "+err.Error())
+			WriteCache(CACHE_FILE, cache)
 			os.Exit(1)
 		}
 

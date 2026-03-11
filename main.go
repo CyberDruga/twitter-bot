@@ -1,18 +1,23 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"slices"
 	"strings"
+	"syscall"
 	"time"
 
-	"github.com/BurntSushi/toml"
+	_ "github.com/CyberDruga/twitter-bot/src/args"
+	"github.com/CyberDruga/twitter-bot/src/cache"
+	"github.com/CyberDruga/twitter-bot/src/config"
+	"github.com/CyberDruga/twitter-bot/src/discord"
+	_ "github.com/CyberDruga/twitter-bot/src/logger"
+	"github.com/CyberDruga/twitter-bot/src/models"
+	"github.com/CyberDruga/twitter-bot/src/trap"
 	"github.com/gorilla/websocket"
 )
 
@@ -21,46 +26,23 @@ const (
 	CACHE_FILE = ".cache"
 )
 
-type Config struct {
-	WebhookUrl string `toml:"webhook_url"`
-	RuleId     string `toml:"rule_id"`
-	ApiToken   string `toml:"api_token"`
-	Message    string `toml:"message"`
-}
-
-type WebsocketMessage struct {
-	EventType string  `json:"event_type"`
-	RuleId    string  `json:"rule_id"`
-	Tweets    []Tweet `json:"tweets"`
-}
-
-type Tweet struct {
-	Url string `json:"url"`
-}
-
 func main() {
 
-	var config Config
+	conf, err := config.LoadConfig("./config.toml")
 
-	toml.DecodeFile("./config.toml", &config)
-
-	if config.ApiToken == "" {
-		panic("No api token informed")
+	if err != nil {
+		panic("Error: " + err.Error())
 	}
 
-	if config.RuleId == "" {
-		panic("No rule_id informed")
+	if err := cache.LoadCache(".cache"); err != nil {
+		panic("Error: " + err.Error())
 	}
 
-	if config.WebhookUrl == "" {
-		panic("No webhook url informed")
-	}
-
-	cache := GetCache(CACHE_FILE)
+	trap.Trap(func() { cache.SaveCache(CACHE_FILE) }, syscall.SIGTERM, syscall.SIGINT)
 
 	headers := http.Header{}
 
-	headers.Add("x-api-key", config.ApiToken)
+	headers.Add("x-api-key", conf.ApiToken)
 
 	con, _, err := websocket.DefaultDialer.Dial(URL, headers)
 
@@ -72,16 +54,15 @@ func main() {
 		_, bytes, err := con.ReadMessage()
 
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error: "+err.Error())
-			WriteCache(CACHE_FILE, cache)
+			slog.Error("Error: " + err.Error())
 			os.Exit(1)
 		}
 
-		fmt.Println(string(bytes))
-
-		var message WebsocketMessage
+		var message models.WebsocketMessage
 
 		json.Unmarshal(bytes, &message)
+
+		slog.Info(fmt.Sprintf("%s: %v - tweets(%d)", message.RuleId, message.EventType, len(message.Tweets)))
 
 		if message.EventType != "tweet" {
 			continue
@@ -91,92 +72,61 @@ func main() {
 			continue
 		}
 
-		if message.RuleId != config.RuleId {
-			continue
-		}
-
-		fmt.Printf("%v\n", message)
-
 		slices.Reverse(message.Tweets)
 
-		first := true
+		slog.Debug(fmt.Sprintf("Rules to process: %d", len(conf.Rules)))
 
-		for _, tweet := range message.Tweets {
-
-			if slices.Contains(cache, tweet) {
-				continue
-			}
-
-			if first {
-				err = SendWebhookMessage(config.WebhookUrl, config.Message)
-
-				if err != nil {
-					fmt.Fprintln(os.Stderr, "Error: "+err.Error())
-				}
-
-				first = false
-			}
-
-			msg := strings.Replace(tweet.Url, "x.com", "fixupx.com", 1)
-
-			err = SendWebhookMessage(config.WebhookUrl, msg)
-
-			cache = append(cache, tweet)
-
-			time.Sleep(1 * time.Second)
-
-			if err != nil {
-				fmt.Fprintln(os.Stderr, "Error: "+err.Error())
-			}
-
+		for _, rule := range conf.Rules {
+			slog.Debug("Processing rules")
+			go HandleTweets(rule, message)
 		}
 
 	}
 }
 
-func SendWebhookMessage(url string, message string) (err error) {
+func HandleTweets(rule config.Rule, message models.WebsocketMessage) {
 
-	type DiscordMessage struct {
-		Content string `json:"content,omitempty"`
-	}
+	var err error
 
-	discordMessage := DiscordMessage{
-		Content: message,
-	}
+	slog.Debug("Processing rule" + message.RuleId)
+	defer slog.Debug(fmt.Sprintf("End processing rule. Error: %v", err))
 
-	body, err := json.Marshal(discordMessage)
-
-	if err != nil {
+	if message.RuleId != rule.RuleId {
 		return
 	}
 
-	fmt.Println("sending message")
+	first := true
 
-	res, err := http.Post(url+"?wait=true", "application/json", bytes.NewBuffer(body))
+	for _, tweet := range message.Tweets {
 
-	if err != nil {
-		return
+		cache.Lock()
+		defer cache.Unlock()
+		if slices.Contains(*cache.Tweets, tweet) {
+			continue
+		}
+
+		if first {
+			err = discord.SendWebhookMessage(rule.WebhookUrl, rule.Message)
+
+			if err != nil {
+				slog.Error("Error: " + err.Error())
+			}
+
+			first = false
+		}
+
+		msg := strings.Replace(tweet.Url, "x.com", "fixupx.com", 1)
+
+		err = discord.SendWebhookMessage(rule.WebhookUrl, msg)
+
+		cache.AddTweet(tweet)
+
+		time.Sleep(1 * time.Second)
+
+		if err != nil {
+			slog.Error("Error: " + err.Error())
+		}
+
 	}
 
-	defer res.Body.Close()
-
-	stuff, err := io.ReadAll(res.Body)
-
-	type Response struct {
-		Message string `json:"message"`
-	}
-
-	var response Response
-
-	err = json.Unmarshal(stuff, &response)
-
-	if err != nil {
-		return
-	}
-
-	if response.Message != "" {
-		return errors.New(response.Message)
-	}
-
-	return
 }

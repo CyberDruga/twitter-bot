@@ -1,12 +1,15 @@
-{pkgs ? import <nixpkgs> {},...}:
+{
+  pkgs ? import <nixpkgs> { },
+  ...
+}:
 
 pkgs.buildGoModule {
-	pname = "twitter-bot";
-	version = "1.0.0";
+  pname = "twitter-bot";
+  version = "1.2.0";
 
-	src = ./. ;
+  src = ./.;
 
-	doCheck = false;
+  doCheck = false;
 
-	vendorHash = "sha256-Upjt0Q2G6x5vGf0bG0TS9uWrHBow8/cQsZexhMgVb2I=";
+  vendorHash = "sha256-mXJv30sdkG6bGGm2MzHPShVogJe2TmYYCkyNKw87vN4=";
 }

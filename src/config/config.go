@@ -24,7 +24,9 @@ func LoadConfig(path string) (config Config, err error) {
 	slog.Debug("Loading config")
 	defer slog.Debug(fmt.Sprintf("Done loading config. Error: %v", err))
 
-	toml.DecodeFile(path, &config)
+	if _, err = toml.DecodeFile(path, &config); err != nil {
+		return
+	}
 
 	if config.ApiToken == "" {
 		err = errors.New("No api token informed")
@@ -38,12 +40,12 @@ func LoadConfig(path string) (config Config, err error) {
 
 	for _, rule := range config.Rules {
 		if rule.RuleId == "" {
-			slog.Error("No rule_id informed")
+			err = errors.New("No rule_id informed")
 			return
 		}
 
 		if rule.WebhookUrl == "" {
-			slog.Error("No webhook url informed")
+			err = errors.New("No webhook url informed")
 			return
 		}
 	}

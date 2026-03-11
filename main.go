@@ -28,7 +28,7 @@ type Config struct {
 	Message    string `toml:"message"`
 }
 
-type WebhookMessage struct {
+type WebsocketMessage struct {
 	EventType string  `json:"event_type"`
 	RuleId    string  `json:"rule_id"`
 	Tweets    []Tweet `json:"tweets"`
@@ -79,7 +79,7 @@ func main() {
 
 		fmt.Println(string(bytes))
 
-		var message WebhookMessage
+		var message WebsocketMessage
 
 		json.Unmarshal(bytes, &message)
 

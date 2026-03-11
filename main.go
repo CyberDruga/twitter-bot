@@ -91,6 +91,10 @@ func main() {
 			continue
 		}
 
+		if message.RuleId != config.RuleId {
+			continue
+		}
+
 		fmt.Printf("%v\n", message)
 
 		slices.Reverse(message.Tweets)

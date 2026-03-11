@@ -18,13 +18,15 @@ func AddTweet(tweet models.Tweet) {
 	*Tweets = append(*Tweets, tweet)
 }
 
-var mutex sync.Mutex
+var mutex = &sync.Mutex{}
 
 func Lock() {
+	slog.Debug("Locking cache")
 	mutex.Lock()
 }
 
 func Unlock() {
+	slog.Debug("Unlocking cache")
 	mutex.Unlock()
 }
 

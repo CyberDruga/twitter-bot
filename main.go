@@ -97,10 +97,11 @@ func HandleTweets(rule config.Rule, message models.WebsocketMessage) {
 
 	first := true
 
+	cache.Lock()
+	defer cache.Unlock()
+
 	for _, tweet := range message.Tweets {
 
-		cache.Lock()
-		defer cache.Unlock()
 		if slices.Contains(*cache.Tweets, tweet) {
 			continue
 		}

@@ -103,10 +103,11 @@ func HandleTweets(rule config.Rule, message models.WebsocketMessage) {
 	for _, tweet := range message.Tweets {
 
 		if slices.Contains(*cache.Tweets, tweet) {
+			slog.Debug("Found in cache, ignoring")
 			continue
 		}
 
-		if first {
+		if first && rule.Message != "" {
 			err = discord.SendWebhookMessage(rule.WebhookUrl, rule.Message)
 
 			if err != nil {

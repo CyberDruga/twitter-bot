@@ -49,6 +49,8 @@ func LoadCache(filePath string) (err error) {
 		*Tweets = append(*Tweets, models.Tweet{Url: scanner.Text()})
 	}
 
+	slog.Debug(fmt.Sprintf("cache: %v", *Tweets))
+
 	slog.Debug(fmt.Sprintf("Tweets: %d", len(*Tweets)))
 
 	return
@@ -73,7 +75,7 @@ func SaveCache(filePath string) (err error) {
 	err = os.WriteFile(
 		filePath,
 		[]byte(text),
-		os.ModePerm|os.ModeAppend,
+		os.ModePerm,
 	)
 
 	return

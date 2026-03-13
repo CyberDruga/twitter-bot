@@ -55,6 +55,7 @@ func main() {
 
 		if err != nil {
 			slog.Error("Error: " + err.Error())
+			cache.SaveCache(CACHE_FILE)
 			os.Exit(1)
 		}
 
@@ -88,7 +89,7 @@ func HandleTweets(rule config.Rule, message models.WebsocketMessage) {
 
 	var err error
 
-	slog.Debug("Processing rule" + message.RuleId)
+	slog.Debug("Processing rule " + message.RuleId)
 	defer slog.Debug(fmt.Sprintf("End processing rule. Error: %v", err))
 
 	if message.RuleId != rule.RuleId {

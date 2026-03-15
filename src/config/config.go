@@ -2,8 +2,7 @@ package config
 
 import (
 	"errors"
-	"fmt"
-	"log/slog"
+	"github.com/charmbracelet/log"
 
 	"github.com/BurntSushi/toml"
 )
@@ -21,8 +20,8 @@ type Rule struct {
 
 func LoadConfig(path string) (config Config, err error) {
 
-	slog.Debug("Loading config")
-	defer slog.Debug(fmt.Sprintf("Done loading config. Error: %v", err))
+	log.Debug("Loading config")
+	defer log.Debug("Done loading config", "Error", err)
 
 	if _, err = toml.DecodeFile(path, &config); err != nil {
 		return

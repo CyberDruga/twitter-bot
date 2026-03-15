@@ -4,9 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
+	"github.com/charmbracelet/log"
 	"io"
-	"log/slog"
 	"net/http"
 )
 
@@ -26,7 +25,7 @@ func SendWebhookMessage(url string, message string) (err error) {
 		return
 	}
 
-	slog.Info(fmt.Sprintf("Sending message [%s]", message))
+	log.Info("Sending message", "Message", message)
 
 	res, err := http.Post(url+"?wait=true", "application/json", bytes.NewBuffer(body))
 

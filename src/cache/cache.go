@@ -2,8 +2,7 @@ package cache
 
 import (
 	"bufio"
-	"fmt"
-	"log/slog"
+	"github.com/charmbracelet/log"
 	"os"
 	"slices"
 	"strings"
@@ -21,19 +20,19 @@ func AddTweet(tweet models.Tweet) {
 var mutex = &sync.Mutex{}
 
 func Lock() {
-	slog.Debug("Locking cache")
+	log.Debug("Locking cache")
 	mutex.Lock()
 }
 
 func Unlock() {
-	slog.Debug("Unlocking cache")
+	log.Debug("Unlocking cache")
 	mutex.Unlock()
 }
 
 func LoadCache(filePath string) (err error) {
 
-	slog.Debug("Loading cache")
-	defer slog.Debug(fmt.Sprintf("Done loading cache: Error %v", err))
+	log.Debug("Loading cache")
+	defer log.Debug("Done loading cache", "Error", err)
 
 	file, err := os.Open(filePath)
 
@@ -49,9 +48,11 @@ func LoadCache(filePath string) (err error) {
 		*Tweets = append(*Tweets, models.Tweet{Url: scanner.Text()})
 	}
 
-	slog.Debug(fmt.Sprintf("cache: %v", *Tweets))
-
-	slog.Debug(fmt.Sprintf("Tweets: %d", len(*Tweets)))
+	log.Debug(
+		"",
+		"Tweets", len(*Tweets),
+		"Cache", *Tweets,
+	)
 
 	return
 
@@ -59,8 +60,8 @@ func LoadCache(filePath string) (err error) {
 
 func SaveCache(filePath string) (err error) {
 
-	slog.Debug("Saving cache")
-	defer slog.Debug(fmt.Sprintf("Done saving cache. Error: %v", err))
+	log.Debug("Saving cache")
+	defer log.Debug("Done saving cache", "Error", err)
 
 	textList := slices.Collect(func(yeld func(string) bool) {
 		for _, tweet := range *Tweets {

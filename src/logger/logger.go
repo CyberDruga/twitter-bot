@@ -1,26 +1,25 @@
 package logger
 
 import (
-	"log/slog"
+	"github.com/charmbracelet/log"
 	"os"
 
 	"github.com/CyberDruga/twitter-bot/src/args"
 )
 
 func init() {
-	level := slog.LevelInfo
+
+	level := log.InfoLevel
 
 	if *args.Debug {
-		level = slog.LevelDebug
+		level = log.DebugLevel
 	}
 
-	opts := &slog.HandlerOptions{
-		AddSource: *args.Source,
-		Level:     level,
-	}
+	log.SetLevel(level)
+	log.SetReportCaller(*args.Source)
+	log.SetOutput(os.Stderr)
 
-	handler := slog.NewTextHandler(os.Stderr, opts)
-
-	slog.SetDefault(slog.New(handler))
+	// NOTE: detects if it's being run on systemd. No point in showing timestamp twice.
+	log.SetReportTimestamp(os.Getenv("INVOCATION_ID") == "")
 
 }

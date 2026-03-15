@@ -2,10 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
-	"log/slog"
+	"github.com/charmbracelet/log"
 	"net/http"
-	"os"
 	"slices"
 	"strings"
 	"syscall"
@@ -47,23 +45,27 @@ func main() {
 	con, _, err := websocket.DefaultDialer.Dial(URL, headers)
 
 	if err != nil {
-		panic("Error: " + err.Error())
+		log.Fatal("Error: " + err.Error())
 	}
 
 	for {
 		_, bytes, err := con.ReadMessage()
 
 		if err != nil {
-			slog.Error("Error: " + err.Error())
 			cache.SaveCache(CACHE_FILE)
-			os.Exit(1)
+			log.Fatal("Connection error", "Error", err.Error())
 		}
 
 		var message models.WebsocketMessage
 
 		json.Unmarshal(bytes, &message)
 
-		slog.Info(fmt.Sprintf("%s: %v - tweets(%d)", message.RuleId, message.EventType, len(message.Tweets)))
+		log.Info(
+			"",
+			"ruleID", message.RuleId,
+			"eventType", message.EventType,
+			"tweets", len(message.Tweets),
+		)
 
 		if message.EventType != "tweet" {
 			continue
@@ -75,10 +77,9 @@ func main() {
 
 		slices.Reverse(message.Tweets)
 
-		slog.Debug(fmt.Sprintf("Rules to process: %d", len(conf.Rules)))
+		log.Debug("Processing rules", "Rules", len(conf.Rules))
 
 		for _, rule := range conf.Rules {
-			slog.Debug("Processing rules")
 			go HandleTweets(rule, message)
 		}
 
@@ -89,8 +90,8 @@ func HandleTweets(rule config.Rule, message models.WebsocketMessage) {
 
 	var err error
 
-	slog.Debug("Processing rule " + message.RuleId)
-	defer slog.Debug(fmt.Sprintf("End processing rule. Error: %v", err))
+	log.Debug("Processing rule " + message.RuleId)
+	defer log.Debug("End processing rule", "Error", err)
 
 	if message.RuleId != rule.RuleId {
 		return
@@ -104,7 +105,7 @@ func HandleTweets(rule config.Rule, message models.WebsocketMessage) {
 	for _, tweet := range message.Tweets {
 
 		if slices.Contains(*cache.Tweets, tweet) {
-			slog.Debug("Found in cache, ignoring")
+			log.Debug("Found in cache, ignoring")
 			continue
 		}
 
@@ -112,7 +113,7 @@ func HandleTweets(rule config.Rule, message models.WebsocketMessage) {
 			err = discord.SendWebhookMessage(rule.WebhookUrl, rule.Message)
 
 			if err != nil {
-				slog.Error("Error: " + err.Error())
+				log.Error("Webhook error", "Error", err.Error())
 			}
 
 			first = false
@@ -122,13 +123,13 @@ func HandleTweets(rule config.Rule, message models.WebsocketMessage) {
 
 		err = discord.SendWebhookMessage(rule.WebhookUrl, msg)
 
+		if err != nil {
+			log.Error("Webhook error", "Error", err.Error())
+		}
+
 		cache.AddTweet(tweet)
 
 		time.Sleep(1 * time.Second)
-
-		if err != nil {
-			slog.Error("Error: " + err.Error())
-		}
 
 	}
 

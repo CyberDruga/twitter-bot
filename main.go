@@ -91,7 +91,7 @@ func HandleTweets(rule config.Rule, message models.WebsocketMessage) {
 	var err error
 
 	log.Debug("Processing rule " + message.RuleId)
-	defer log.Debug("End processing rule", "Error", err)
+	defer log.Debug("End processing rule", "Error", err, "rule", rule, "message", message)
 
 	if message.RuleId != rule.RuleId {
 		return
@@ -105,7 +105,12 @@ func HandleTweets(rule config.Rule, message models.WebsocketMessage) {
 	for _, tweet := range message.Tweets {
 
 		if slices.Contains(*cache.Tweets, tweet) {
-			log.Debug("Found in cache, ignoring")
+			log.Debug("Found in cache, ignoring.")
+			continue
+		}
+
+		if strings.TrimSpace(tweet.Url) == "" {
+			log.Warn("Message contains white spaces, ignoring.", "tweet", tweet)
 			continue
 		}
 

@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"github.com/charmbracelet/log"
 	"os"
-	"slices"
 	"strings"
 	"sync"
 
@@ -63,13 +62,11 @@ func SaveCache(filePath string) (err error) {
 	log.Debug("Saving cache")
 	defer log.Debug("Done saving cache", "Error", err)
 
-	textList := slices.Collect(func(yeld func(string) bool) {
-		for _, tweet := range *Tweets {
-			if !yeld(tweet.Url) {
-				return
-			}
-		}
-	})
+	var textList []string
+
+	for _, tweet := range *Tweets {
+		textList = append(textList, tweet.Url)
+	}
 
 	text := strings.Join(textList, "\n")
 

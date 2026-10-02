@@ -25,7 +25,13 @@ const (
 )
 
 func main() {
+	for {
+		doIt()
+		time.Sleep(1 * time.Minute)
+	}
+}
 
+func doIt() {
 	conf, err := config.LoadConfig("./config.toml")
 
 	if err != nil {

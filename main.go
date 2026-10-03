@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"slices"
 	"strings"
-	"syscall"
 	"time"
 
 	_ "github.com/CyberDruga/twitter-bot/src/args"
@@ -15,7 +14,6 @@ import (
 	"github.com/CyberDruga/twitter-bot/src/discord"
 	_ "github.com/CyberDruga/twitter-bot/src/logger"
 	"github.com/CyberDruga/twitter-bot/src/models"
-	"github.com/CyberDruga/twitter-bot/src/trap"
 	"github.com/gorilla/websocket"
 )
 
@@ -42,7 +40,7 @@ func doIt() {
 		panic("Error: " + err.Error())
 	}
 
-	trap.Trap(func() { cache.SaveCache(CACHE_FILE) }, syscall.SIGTERM, syscall.SIGINT)
+	// trap.Trap(func() { cache.SaveCache(CACHE_FILE) }, syscall.SIGTERM, syscall.SIGINT)
 
 	headers := http.Header{}
 
@@ -59,7 +57,8 @@ func doIt() {
 
 		if err != nil {
 			cache.SaveCache(CACHE_FILE)
-			log.Fatal("Connection error", "Error", err.Error())
+			log.Error("Connection error", "Error", err.Error())
+			return
 		}
 
 		var message models.WebsocketMessage
@@ -107,6 +106,7 @@ func HandleTweets(rule config.Rule, message models.WebsocketMessage) {
 
 	cache.Lock()
 	defer cache.Unlock()
+	defer cache.SaveCache(CACHE_FILE)
 
 	for _, tweet := range message.Tweets {
 

@@ -25,7 +25,7 @@ const (
 func main() {
 	for {
 		doIt()
-		time.Sleep(1 * time.Minute)
+		time.Sleep(5 * time.Minute)
 	}
 }
 
